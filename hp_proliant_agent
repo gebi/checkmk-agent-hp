@@ -1,0 +1,135 @@
+#!/bin/bash
+
+if which hpasmcli >/dev/null; then
+    echo '<<<hp_proliant_agent_temp>>>'
+    # INPUT:
+    # hpasmcli -s 'show temp'
+    #
+    # Sensor   Location              Temp       Threshold
+    # ------   --------              ----       ---------
+    # #1        AMBIENT              15C/59F    41C/105F 
+    # #2        CPU#1                40C/104F   82C/179F 
+    # #3        CPU#2                40C/104F   82C/179F 
+    # #4        MEMORY_BD            26C/78F    87C/188F 
+    # ...
+    #
+    # OUTPUT:
+    # #1 AMBIENT 15C/59F 41C/105F
+    # #2 CPU#1 40C/104F 82C/179F
+    # #3 CPU#2 40C/104F 82C/179F
+    # #4 MEMORY_BD 26C/78F 87C/188F
+    hpasmcli -s 'show temp' |grep \^# |tr -s ' '
+
+    echo '<<<hp_proliant_agent_fans>>>'
+    # INPUT:
+    # hpasmcli -s 'show fans'
+    #
+    # Fan  Location        Present Speed  of max  Redundant  Partner  Hot-pluggable
+    # ---  --------        ------- -----  ------  ---------  -------  -------------
+    # #1   SYSTEM          Yes     NORMAL  35%     Yes        0        Yes
+    # #2   SYSTEM          Yes     NORMAL  50%     Yes        0        Yes
+    # #3   SYSTEM          Yes     NORMAL  50%     Yes        0        Yes
+    # #4   SYSTEM          Yes     NORMAL  50%     Yes        0        Yes
+    # #5   SYSTEM          Yes     NORMAL  35%     Yes        0        Yes
+    # #6   SYSTEM          Yes     NORMAL  35%     Yes        0        Yes
+    #
+    # OUTPUT:
+    # #1 SYSTEM Yes NORMAL 35% Yes 0 Yes
+    # #2 SYSTEM Yes NORMAL 50% Yes 0 Yes
+    # #3 SYSTEM Yes NORMAL 50% Yes 0 Yes
+    # #4 SYSTEM Yes NORMAL 50% Yes 0 Yes
+    # #5 SYSTEM Yes NORMAL 35% Yes 0 Yes
+    # #6 SYSTEM Yes NORMAL 35% Yes 0 Yes
+    hpasmcli -s 'show fans' |grep \^# |tr -s ' '
+
+    echo '<<<hp_proliant_agent_dimm>>>'
+    # INPUT:
+    # hpasmcli -s 'show dimm'                                                                                                             
+    # 
+    # DIMM Configuration
+    # ------------------
+    # Processor #:                  1
+    # Module #:                     3
+    # Present:                      Yes
+    # Form Factor:                  9h
+    # Memory Type:                  18h
+    # Size:                         4096 MB
+    # Speed:                        1333 MHz
+    # Supports Lock Step:           No
+    # Configured for Lock Step:     No
+    # Status:                       Ok
+    # 
+    # <next dimm block>
+    #
+    # OUTPUT:   <CPU> <NUM> <SIZE> <SPEED> <STATUS>
+    # 1 3 4096 1333 Ok
+    # 1 6 4096 1333 Ok
+    # 1 9 4096 1333 Ok
+    # 2 3 4096 1333 Ok
+    # 2 6 4096 1333 Ok
+    # 2 9 4096 1333 Ok
+    hpasmcli -s 'show dimm' |awk '/^Processor #: /{printf "%s ",$3} /^Module #: /{printf "%s ",$3} /^Size: /{printf "%s ",$2} /^Speed: /{printf "%s ",$2} /^Status: /{printf "%s\n",$2}'
+
+    echo '<<<hp_proliant_agent_power>>>'
+    # INPUT:
+    # hpasmcli -s 'show powersupply'
+    #
+    # Power supply #1
+    #         Present  : Yes
+    #         Redundant: Yes
+    #         Condition: Ok
+    #         Hotplug  : Supported
+    #         Power    : 95 Watts
+    # Power supply #2
+    #         Present  : Yes
+    #         Redundant: Yes
+    #         Condition: Ok
+    #         Hotplug  : Supported
+    #         Power    : 35 Watts
+    #
+    # OUTPUT:   <NUM> <STATUS> <CURRENT POWER>
+    # #1 Ok 95
+    # #2 Ok 35
+    hpasmcli -s 'show powersupply' |awk '/^Power supply /{printf("%s ",$3)} /Condition:/ {printf("%s ",$2)} /Power.*:/{print $3}'
+
+    echo '<<<hp_proliant_agent_cpu>>>'
+    # INPUT:
+    # hpasmcli -s 'show server'
+    # ...
+    # Processor: 0
+    #        Name         : Intel Xeon
+    #        Stepping     : 2
+    #        Speed        : 2667 MHz
+    #        Bus          : 133 MHz
+    #        Core         : 6
+    #        Thread       : 12
+    #        Socket       : 1
+    #        Level2 Cache : 1536 KBytes
+    #        Level3 Cache : 12288 KBytes
+    #        Status       : Ok
+    # 
+    # Processor: 1
+    #        Name         : Intel Xeon
+    #        Stepping     : 2
+    #        Speed        : 2667 MHz
+    #        Bus          : 133 MHz
+    #        Core         : 6
+    #        Thread       : 12
+    #        Socket       : 2
+    #        Level2 Cache : 1536 KBytes
+    #        Level3 Cache : 12288 KBytes
+    #        Status       : Ok
+    #
+    # OUTPUT:   <NUM> <NAME> <STATUS>
+    # #0 "IntelXeon" Ok
+    # #1 "IntelXeon" Ok
+    hpasmcli -s 'show server' | \
+        awk 'BEGIN{ OFS=""; } /\Processor: /{printf "#%s ",$2} /Name.*:/{$1="";$2="";printf "\"%s\" ",$0} /Status.*:/{printf "%s\n",$3}'
+fi
+
+exit 0
+
+if which cciss_vol_status >/dev/null; then
+    echo '<<<hp_proliant_agent_raid>>>'
+    cciss_vol_status -p /dev/cciss/c*d0
+fi
