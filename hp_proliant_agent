@@ -121,10 +121,10 @@ if which hpasmcli >/dev/null; then
     #        Status       : Ok
     #
     # OUTPUT:   <NUM> <NAME> <STATUS>
-    # #0 "IntelXeon" Ok
-    # #1 "IntelXeon" Ok
+    # 0 "IntelXeon" Ok
+    # 1 "IntelXeon" Ok
     hpasmcli -s 'show server' | \
-        awk 'BEGIN{ OFS=""; } /\Processor: /{printf "#%s ",$2} /Name.*:/{$1="";$2="";printf "\"%s\" ",$0} /Status.*:/{printf "%s\n",$3}'
+        awk 'BEGIN{ OFS=""; } /\Processor: /{printf "%s ",$2} /Name.*:/{$1="";$2="";printf "\"%s\" ",$0} /Status.*:/{printf "%s\n",$3}'
 fi
 
 exit 0
