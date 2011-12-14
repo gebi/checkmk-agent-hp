@@ -127,8 +127,6 @@ if which hpasmcli >/dev/null; then
         awk 'BEGIN{ OFS=""; } /\Processor: /{printf "%s ",$2} /Name.*:/{$1="";$2="";printf "\"%s\" ",$0} /Status.*:/{printf "%s\n",$3}'
 fi
 
-exit 0
-
 if which cciss_vol_status >/dev/null; then
     echo '<<<hp_proliant_agent_raid>>>'
     cciss_vol_status -p /dev/cciss/c*d0
